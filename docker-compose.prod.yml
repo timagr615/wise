@@ -12,7 +12,7 @@ services:
       - 8002:8000
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.fastapi.rule=Host(`192.168.1.234`)"
+      - "traefik.http.routers.fastapi.rule=Host(`wiseapi.ru`)"
       - "traefik.http.routers.fastapi.tls=true"
       - "traefik.http.routers.fastapi.tls.certresolver=letsencrypt"
     depends_on:
