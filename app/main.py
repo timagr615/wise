@@ -25,7 +25,5 @@ app.add_middleware(
 
 @app.get('/')
 async def root():
-    return {'app name': settings.app_name,
-            'admin': settings.admin_username,
-            'db': settings.database_url}
+    return {'app name': settings.app_name}
 
