@@ -7,7 +7,9 @@ from app.core.db import sessionmanager
 
 origins = [
     'http://localhost',
-    'http://localhost:3000'
+    'http://localhost:3000',
+    'http://wiseapi.online',
+    'https://wiseapi.online',
 ]
 
 sessionmanager.init(settings.database_url)
