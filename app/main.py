@@ -10,6 +10,8 @@ origins = [
     'http://localhost:3000',
     'http://wiseapi.online',
     'https://wiseapi.online',
+    'http://194.67.93.32',
+    'https://194.67.93.32',
 ]
 
 sessionmanager.init(settings.database_url)
