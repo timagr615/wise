@@ -1,11 +1,12 @@
 from datetime import datetime
 from typing import TypeVar, TYPE_CHECKING, Type
 
-from sqlalchemy import Integer, Table, Column, ForeignKey, String, select, delete, DateTime
+from sqlalchemy import Integer, Table, Column, ForeignKey, String, select, delete, DateTime, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, relationship, WriteOnlyMapped
 
 from app.chat.associations import association_table
+from app.chat.schemas import FileUpload
 from app.core.db import Base
 # if TYPE_CHECKING:
 from app.users.models import User
@@ -13,6 +14,7 @@ from app.users.schemas import UserGetName
 
 C = TypeVar('C', bound='Chat')
 M = TypeVar('M', bound='Message')
+F = TypeVar('F', bound='File')
 
 
 class Chat(Base):
@@ -78,6 +80,7 @@ class Message(Base):
     user: Mapped['User'] = relationship('User', back_populates="messages", lazy="selectin")
     chat_id: Mapped[int] = mapped_column(ForeignKey('chats.id', ondelete="CASCADE"))
     chat: Mapped['Chat'] = relationship('Chat', back_populates="messages", lazy="selectin")
+    files: Mapped[list['File']] = relationship('File', back_populates='message', lazy='selectin')
 
     def __repr__(self):
         return f"CHAT {self.id} users: {self.user}"
@@ -97,6 +100,15 @@ class Message(Base):
         await session.refresh(message)
         return message
 
+    # @classmethod
+    # async def update_message_files(cls: Type[M], session: AsyncSession, message_id: str, files: ):
+
+    @classmethod
+    async def get_message_by_id(cls: Type[M], session: AsyncSession, message_id: int) -> M:
+        message = select(cls).where(cls.id == message_id)
+        result = await session.execute(message)
+        return result.scalars().first()
+
     @classmethod
     async def get_messages_by_chat_id(cls: Type[M], session: AsyncSession, chat_id: int) -> list[M]:
         messages = select(cls).where(cls.chat_id == chat_id)
@@ -108,3 +120,69 @@ class Message(Base):
         messages = select(cls).where(cls.user_id == user_id)
         result = await session.execute(messages)
         return result.scalars().all()
+
+
+class File(Base):
+    __tablename__ = "files"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False, default=datetime.now().strftime("%Y_%m_%d_%H_%M_%S_%f"))
+    path: Mapped[str] = mapped_column(String, nullable=False)
+    size: Mapped[int] = mapped_column(Integer, nullable=False)
+    message_id: Mapped[int] = mapped_column(ForeignKey('messages.id', ondelete="CASCADE"))
+    message: Mapped['Message'] = relationship('Message', back_populates='files', lazy='selectin')
+
+    def __repr__(self):
+        print(f'File from message: {self.message_id}. Name: {self.name}, Path: {self.path}, Size: {self.size}')
+
+    @classmethod
+    async def create_file(cls: Type[F], session: AsyncSession, data: FileUpload) -> F:
+        file = cls(**data.dict())
+        session.add(file)
+        await session.commit()
+        await session.refresh(file)
+        return file
+
+    @classmethod
+    async def get_all(cls: Type[F], session: AsyncSession, limit: int = 100, offset: int = 0) -> list[F]:
+        data = await session.execute(select(cls).offset(offset).limit(limit))
+        return data.scalars().all()
+
+    @classmethod
+    async def get_by_id(cls: Type[F], session: AsyncSession, file_id: int) -> F:
+        query = select(cls).where(cls.id == file_id)
+        data = await session.execute(query)
+        return data.scalars().first()
+
+    @classmethod
+    async def get_by_path(cls: Type[F], session: AsyncSession, path: str) -> F:
+        query = select(cls).where(cls.path == path)
+        data = await session.execute(query)
+        return data.scalars().first()
+
+    @classmethod
+    async def get_by_message_id(cls: Type[F], session: AsyncSession, message_id: int) -> F:
+        query = select(cls).where(cls.message_id == message_id)
+        data = await session.execute(query)
+        return data.scalars().first()
+
+    @classmethod
+    async def get_message_file(cls: Type[F], session: AsyncSession, message_id: int, file_id: int) -> F:
+        query = select(cls).where(cls.message_id == message_id).where(cls.id == file_id)
+        data = await session.execute(query)
+        return data.scalars().first()
+
+    @classmethod
+    async def delete_by_id(cls: Type[F], session: AsyncSession, file_id: int) -> F:
+        query = delete(cls).where(cls.id == file_id).returning(cls.path)
+        data = await session.execute(query)
+        await session.commit()
+        return data.scalars().first()
+
+    @classmethod
+    async def update_file_size(cls: Type[F], session: AsyncSession, size: int, path: str) -> F:
+        data_d = {'size': size}
+        file = await cls.get_by_path(session, path)
+        query = update(cls).where(cls.id == file.id).values(**data_d).execution_options(synchronize_session="fetch")
+        data = await session.execute(query)
+        await session.commit()
+        return data.scalars().first()

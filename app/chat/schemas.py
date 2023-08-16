@@ -8,6 +8,26 @@ if TYPE_CHECKING:
     from app.users.schemas import UserGet, UserGetName
 
 
+class FileBase(BaseModel):
+    name: str
+
+
+class FileUpload(FileBase):
+    path: str
+    size: int
+    message_id: int
+
+    class Config:
+        orm_mode = True
+
+
+class FileDB(FileUpload):
+    id: int
+
+    class Config:
+        orm_mode = True
+
+
 class ChatBase(BaseModel):
     id: int
     # users: list[User] = []
@@ -31,6 +51,7 @@ class MessageGet(MessageBase):
     user_id: int
     chat_id: int
     created_at: datetime
+    files: list[FileDB] = []
 
     class Config:
         orm_mode = True
