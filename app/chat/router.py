@@ -102,6 +102,12 @@ async def get_messages_by_user(user_id: int, session: AsyncSession = Depends(get
     return messages
 
 
+@chat_router.get("/message/{message_id}/delete")
+async def delete_message_by_id(message_id: int, session: AsyncSession = Depends(get_db)):
+    await Message.delete_message_by_id(session, message_id)
+    return {"message": message_id, 'deleted': 'success'}
+
+
 @chat_router.post("/message/create", response_model=MessageGet)
 async def create_message(message: MessageCreate,
                          session: AsyncSession = Depends(get_db),
