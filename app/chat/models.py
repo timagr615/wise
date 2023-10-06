@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import TypeVar, TYPE_CHECKING, Type
+from typing import TypeVar, TYPE_CHECKING, Type, Annotated, Self
 
 from sqlalchemy import Integer, Table, Column, ForeignKey, String, select, delete, DateTime, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,7 +25,7 @@ class Chat(Base):
     messages: Mapped[list['Message']] = relationship("Message", back_populates="chat", lazy='selectin')
 
     @classmethod
-    async def create_chat(cls: Type[C], session: AsyncSession, user_id: int) -> C:
+    async def create_chat(cls: Type[Self], session: AsyncSession, user_id: int) -> Self:
         user = await User.get_by_id(session, user_id)
         if user.chats:
             return user.chats[0]
@@ -83,7 +83,7 @@ class Message(Base):
     files: Mapped[list['File']] = relationship('File', back_populates='message', lazy='selectin')
 
     def __repr__(self):
-        return f"CHAT {self.id} users: {self.user}"
+        return f"CHAT {self.id}, {self.message}"
 
     @classmethod
     async def create_message(cls: Type[M], session: AsyncSession, message: str, chat_id: int, user_id: int) -> M:
@@ -120,6 +120,32 @@ class Message(Base):
         messages = select(cls).where(cls.user_id == user_id)
         result = await session.execute(messages)
         return result.scalars().all()
+
+    @classmethod
+    async def delete_message_by_id(cls: Type[M], session: AsyncSession, message_id: int) -> bool:
+        msg = delete(cls).where(cls.id == message_id)
+        await session.execute(msg)
+        await session.commit()
+        return True
+
+    @classmethod
+    async def delete_all_messages(cls: Type[M], session: AsyncSession, messages_id: list[int]) -> bool:
+        msg = delete(cls).where(cls.id.in_(messages_id))
+        await session.execute(msg)
+        await session.commit()
+        return True
+
+    @classmethod
+    async def clear_messages_by_chat_id(cls: Type[M], session: AsyncSession, chat_id: int) -> None:
+        try:
+            messages = await cls.get_messages_by_chat_id(session, chat_id)
+            mes = []
+            for i in range(len(messages)):
+                if i != 0:
+                    mes.append(messages[i].id)
+            await cls.delete_all_messages(session, mes)
+        except Exception as e:
+            print(e)
 
 
 class File(Base):

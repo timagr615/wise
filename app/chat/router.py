@@ -141,7 +141,7 @@ async def create_message_with_file(message: MessageCreate = Depends(),
                 await file.close()
             # print(path)
     message = await Message.get_message_by_id(session, message_id)
-    print(message)
+    # print(message)
     # print(message.user_id, message.chat_id, message.message, message.files)
     return message
 
@@ -167,3 +167,11 @@ async def download_file(file_id: int,
 async def get_all_files(offset: int = 0, limit: int = 100, session: AsyncSession = Depends(get_db)):
     files = await File.get_all(session, limit, offset)
     return files
+
+
+@chat_router.get('/{chat_id}/clear')
+async def clear_chat(chat_id: int, session: AsyncSession = Depends(get_db),
+                     current_user: UserGetFull = Depends(get_current_user)):
+    if current_user.role != "superuser":
+        raise HTTPException(status_code=400, detail="Permission denied!")
+    await Message.clear_messages_by_chat_id(session, chat_id)
