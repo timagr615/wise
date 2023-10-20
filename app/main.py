@@ -12,6 +12,8 @@ origins = [
     'https://wiseapi.online',
     'http://194.67.93.32',
     'https://194.67.93.32',
+    'https://185.46.8.70',
+    'http://185.46.8.70',
 ]
 
 sessionmanager.init(settings.database_url)
