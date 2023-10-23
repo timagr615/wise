@@ -10,6 +10,7 @@ services:
       - .:/usr/src/
     ports:
       - 8002:8000
+    restart: always
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.fastapi.rule=Host(`wiseapi.ru`)"
@@ -24,6 +25,7 @@ services:
 
     volumes:
       - ./postgres_data:/var/lib/postgresql/data/pgdata
+    restart: always
     environment:
       POSTGRES_DB: ${DATABASE_NAME}
       POSTGRES_USER: ${DATABASE_USER}
@@ -41,6 +43,7 @@ services:
       - PGADMIN_DEFAULT_PASSWORD=admin
     ports:
       - "5050:80"
+    restart: always
     depends_on:
       - db
   traefik:
@@ -48,6 +51,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    restart: always
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "./traefik/traefik.prod.toml:/etc/traefik/traefik.toml"
